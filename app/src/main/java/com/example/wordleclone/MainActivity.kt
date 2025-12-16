@@ -12,7 +12,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh // Placeholder for sun/moon if needed
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,24 +30,56 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // 1. Detect system theme initially
             val systemDark = isSystemInDarkTheme()
             var isDarkTheme by remember { mutableStateOf(systemDark) }
 
-            // 2. Force the theme based on our variable, not just the system
             MaterialTheme(
-                colorScheme = if (isDarkTheme) com.example.wordleclone.ui.theme.DarkColorScheme else com.example.wordleclone.ui.theme.LightColorScheme
+                colorScheme = if (isDarkTheme) DarkColorScheme else LightColorScheme
             ) {
-                // 3. Pass the state and the toggle function down
-                WordleApp(isDark = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                MainScreen(isDark = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
             }
         }
     }
 }
 
 @Composable
-fun WordleApp(
-    viewModel: WordleViewModel = viewModel(),
+fun MainScreen(isDark: Boolean, onToggleTheme: () -> Unit) {
+    val viewModel: WordleViewModel = viewModel()
+    var currentScreen by remember { mutableStateOf(0) } // 0 = Play, 1 = Solve
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Play") },
+                    label = { Text("Play") },
+                    selected = currentScreen == 0,
+                    onClick = { currentScreen = 0 }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Build, contentDescription = "Solve") },
+                    label = { Text("Solver") },
+                    selected = currentScreen == 1,
+                    onClick = { currentScreen = 1 }
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
+            if (currentScreen == 0) {
+                // Pass the toggle function to the Game Screen
+                WordleGameScreen(viewModel, isDark, onToggleTheme)
+            } else {
+                SolverScreen(viewModel)
+            }
+        }
+    }
+}
+
+// Renamed your previous 'WordleApp' to 'WordleGameScreen' to be clearer
+@Composable
+fun WordleGameScreen(
+    viewModel: WordleViewModel,
     isDark: Boolean,
     onToggleTheme: () -> Unit
 ) {
@@ -63,9 +96,8 @@ fun WordleApp(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // HEADER ROW
+            // HEADER
             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
-                // Title centered
                 Text(
                     text = "WORDLE",
                     fontSize = 32.sp,
@@ -73,17 +105,12 @@ fun WordleApp(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.align(Alignment.Center)
                 )
-
-                // Theme Toggle Button (Right side)
                 Button(
                     onClick = onToggleTheme,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
-                    Text(
-                        text = if (isDark) "☀\uFE0F" else "🌙", // Sun or Moon emoji
-                        fontSize = 24.sp
-                    )
+                    Text(text = if (isDark) "☀\uFE0F" else "🌙", fontSize = 24.sp)
                 }
             }
 
@@ -91,9 +118,7 @@ fun WordleApp(
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 board.forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        row.forEach { cell ->
-                            WordleCell(cell, isDark)
-                        }
+                        row.forEach { cell -> WordleCell(cell, isDark) }
                     }
                 }
             }
@@ -102,7 +127,6 @@ fun WordleApp(
             Keyboard(keyStates, isDark) { viewModel.onKeyInput(it) }
         }
 
-        // Error Toast
         if (error != null) {
             Surface(
                 modifier = Modifier.align(Alignment.Center).padding(bottom = 200.dp),
@@ -113,7 +137,6 @@ fun WordleApp(
             }
         }
 
-        // Stats Dialog
         if (showStats) {
             StatsDialog(stats, gameState, viewModel.targetWord) {
                 viewModel.showStatsDialog = false
@@ -123,9 +146,12 @@ fun WordleApp(
     }
 }
 
+// ... Keep your existing WordleCell, Keyboard, KeyButton, StatsDialog, StatBox functions below ...
+// (I will omit them here to save space, but DO NOT DELETE THEM from your file)
+// Just ensure you paste the WordleCell, Keyboard, etc. functions back here if you replace the whole file.
+
 @Composable
 fun WordleCell(cell: CellData, isDark: Boolean) {
-    // Colors need to adapt manually if we are overriding system theme
     val bgColor by animateColorAsState(
         targetValue = when (cell.status) {
             CharStatus.CORRECT -> Green
@@ -180,7 +206,7 @@ fun Keyboard(keyStates: Map<Char, CharStatus>, isDark: Boolean, onKey: (Char) ->
                         CharStatus.CORRECT -> Green
                         CharStatus.WRONG_POS -> Yellow
                         CharStatus.ABSENT -> if (isDark) Color(0xFF3A3A3C) else DarkGray
-                        CharStatus.INITIAL -> if (isDark) Color(0xFF818384) else LightGray // Key Default
+                        CharStatus.INITIAL -> if (isDark) Color(0xFF818384) else LightGray
                     }
                     KeyButton(char.toString(), 32.dp, color) { onKey(char) }
                 }
@@ -191,7 +217,6 @@ fun Keyboard(keyStates: Map<Char, CharStatus>, isDark: Boolean, onKey: (Char) ->
     }
 }
 
-// ... Keep KeyButton and StatsDialog exactly the same as before ...
 @Composable
 fun KeyButton(text: String, width: androidx.compose.ui.unit.Dp, color: Color, onClick: () -> Unit) {
     Box(

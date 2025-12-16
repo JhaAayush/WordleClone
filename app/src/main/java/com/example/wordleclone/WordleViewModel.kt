@@ -198,4 +198,53 @@ class WordleViewModel(application: Application) : AndroidViewModel(application) 
             errorMessage = null
         }
     }
+
+    // --- SOLVER LOGIC ---
+
+    var solverResults by mutableStateOf<List<String>>(emptyList())
+
+    // reset solver
+    fun clearSolver() {
+        solverResults = emptyList()
+    }
+
+    fun solveWordle(greenPattern: String, yellowLetters: String, grayLetters: String) {
+        if (dictionary.isEmpty()) return
+
+        val green = greenPattern.uppercase() // e.g. "A_P__"
+        val yellow = yellowLetters.uppercase() // e.g. "LE"
+        val gray = grayLetters.uppercase() // e.g. "XYZ"
+
+        val filtered = dictionary.filter { word ->
+            // 1. Check Green (Exact Matches)
+            // If the user entered a letter in a slot, the word MUST match it at that index.
+            for (i in 0 until 5) {
+                val charAtPos = green.getOrNull(i) ?: ' '
+                if (charAtPos != ' ' && charAtPos != '_' && word[i] != charAtPos) {
+                    return@filter false
+                }
+            }
+
+            // 2. Check Yellow (Must Contain)
+            // The word must contain ALL these letters somewhere
+            yellow.forEach { mustHaveChar ->
+                if (!word.contains(mustHaveChar)) return@filter false
+            }
+
+            // 3. Check Gray (Excluded)
+            // The word must NOT contain any of these letters
+            // (Unless that letter is also in Green/Yellow - handling duplicates is complex,
+            // but for a simple solver, we assume gray means "totally gone")
+            gray.forEach { badChar ->
+                // Only exclude if this badChar is NOT in our 'must have' list
+                // (This handles the edge case where you have 2 'E's, one is green, one is gray)
+                if (!green.contains(badChar) && !yellow.contains(badChar)) {
+                    if (word.contains(badChar)) return@filter false
+                }
+            }
+
+            true
+        }
+        solverResults = filtered.sorted()
+    }
 }
