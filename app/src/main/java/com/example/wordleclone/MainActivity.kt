@@ -3,7 +3,11 @@ package com.example.wordleclone
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.wordleclone.ui.theme.*
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,11 +38,52 @@ class MainActivity : ComponentActivity() {
             val systemDark = isSystemInDarkTheme()
             var isDarkTheme by remember { mutableStateOf(systemDark) }
 
+            // Splash Screen State
+            var showSplash by remember { mutableStateOf(true) }
+
+            // Splash Logic: Wait 2 seconds, then hide splash
+            LaunchedEffect(Unit) {
+                delay(2000) // 2 Seconds
+                showSplash = false
+            }
+
             MaterialTheme(
                 colorScheme = if (isDarkTheme) DarkColorScheme else LightColorScheme
             ) {
-                MainScreen(isDark = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                // Fade animation between Splash and App
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (showSplash) {
+                        SplashScreen()
+                    } else {
+                        MainScreen(isDark = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun SplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Wordle",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "By Aayush Jha",
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -45,7 +91,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(isDark: Boolean, onToggleTheme: () -> Unit) {
     val viewModel: WordleViewModel = viewModel()
-    var currentScreen by remember { mutableStateOf(0) } // 0 = Play, 1 = Solve
+    var currentScreen by remember { mutableStateOf(0) }
 
     Scaffold(
         bottomBar = {
@@ -67,7 +113,6 @@ fun MainScreen(isDark: Boolean, onToggleTheme: () -> Unit) {
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             if (currentScreen == 0) {
-                // Pass the toggle function to the Game Screen
                 WordleGameScreen(viewModel, isDark, onToggleTheme)
             } else {
                 SolverScreen(viewModel)
@@ -76,7 +121,11 @@ fun MainScreen(isDark: Boolean, onToggleTheme: () -> Unit) {
     }
 }
 
-// Renamed your previous 'WordleApp' to 'WordleGameScreen' to be clearer
+// -----------------------------------------------------------------------------------
+// PASTE THE REST OF YOUR EXISTING CODE BELOW THIS LINE
+// (WordleGameScreen, WordleCell, Keyboard, KeyButton, StatsDialog, StatBox)
+// -----------------------------------------------------------------------------------
+
 @Composable
 fun WordleGameScreen(
     viewModel: WordleViewModel,
@@ -145,10 +194,6 @@ fun WordleGameScreen(
         }
     }
 }
-
-// ... Keep your existing WordleCell, Keyboard, KeyButton, StatsDialog, StatBox functions below ...
-// (I will omit them here to save space, but DO NOT DELETE THEM from your file)
-// Just ensure you paste the WordleCell, Keyboard, etc. functions back here if you replace the whole file.
 
 @Composable
 fun WordleCell(cell: CellData, isDark: Boolean) {
